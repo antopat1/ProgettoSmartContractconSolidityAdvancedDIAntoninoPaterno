@@ -16,8 +16,8 @@ contract GovernanceToken is ERC20, Ownable, ReentrancyGuard {
     /// @notice Acquisto di token di governance. Prezzo fisso per token.
     function buyTokens() external payable nonReentrant {
         require(msg.value > 0, "Devi inviare Ether per acquistare token.");
-        uint tokensToMint = msg.value / TOKEN_PRICE;
-        _mint(msg.sender, tokensToMint); // Mintiamo i token per l'utente
+        uint tokensToMint = (msg.value * 10**decimals()) / TOKEN_PRICE; 
+        _mint(msg.sender, tokensToMint);
     }
 
     /// @notice Funzione per prelevare gli Ether accumulati dalla vendita dei token. Solo l'owner può chiamarla.
