@@ -10,6 +10,15 @@ contract DAO is GovernanceToken, Proposal {
 
     uint public constant PROPOSAL_DURATION = 1 weeks;
     uint public executive = 1;
+    address public daoCreator;      // Variabile per memorizzare l'indirizzo del creatore della DAO
+    uint public proposalCounter;    // Contatore per il numero totale di proposte create
+
+    // Costruttore che passa `_tokenAddress` al contratto `Proposal` e inizializza variabili
+    constructor(address _tokenAddress) Proposal(_tokenAddress) {
+        daoCreator = msg.sender;    // Imposta il creatore della DAO
+        executive = 1;              // Imposta lo stato iniziale di executive
+        proposalCounter = 0;        // Inizializza il contatore delle proposte a zero
+    }
 
     // Evento per notificare quando viene espresso un voto
     event Voted(uint proposalId, address voter, bool support, bool abstain);

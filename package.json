@@ -12,8 +12,6 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@openzeppelin/contracts": "^4.8.0",
-    "@types/mocha": "^10.0.9",
-    "chai": "^4.2.0",
     "hardhat": "^2.22.15",
     "viem": "^2.21.37"
   }

@@ -2,13 +2,27 @@ import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import hre from "hardhat";
 import { getAddress, parseEther } from "viem";
+import type { Account } from "viem";
+
+// Aggiungiamo l'interfaccia per il contratto
+interface GovernanceTokenContract {
+  write: {
+    buyTokens(options?: { value: bigint; account: Account }): Promise<`0x${string}`>;
+    withdraw(options?: { account: Account }): Promise<`0x${string}`>;
+  };
+  read: {
+    TOKEN_PRICE(): Promise<bigint>;
+    balanceOf(args: readonly [`0x${string}`]): Promise<bigint>;
+    totalSupply(): Promise<bigint>;
+  };
+}
 
 describe("GovernanceToken", function () {
   async function deployGovernanceTokenFixture() {
     const [owner, addr1, addr2] = await hre.viem.getWalletClients();
     
-    // Deploy the contract
-    const governanceToken = await hre.viem.deployContract("GovernanceToken");
+    // Modifichiamo il tipo del contratto deployato
+    const governanceToken = await hre.viem.deployContract("GovernanceToken") as unknown as GovernanceTokenContract;
     const publicClient = await hre.viem.getPublicClient();
     
     return { governanceToken, owner, addr1, addr2, publicClient };
@@ -19,19 +33,23 @@ describe("GovernanceToken", function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       const tokenPrice = await governanceToken.read.TOKEN_PRICE();
       
-      // Buy tokens
-      await governanceToken.write.buyTokens({ value: parseEther("0.1"), account: addr1.account });
+      await governanceToken.write.buyTokens({ 
+        value: parseEther("0.1"), 
+        account: addr1.account 
+      });
       
-      // Check balance (0.1 ETH should buy 10 tokens at 0.01 ETH per token)
       const balance = await governanceToken.read.balanceOf([addr1.account.address]);
-      expect(balance).to.equal(10n * parseEther("1"));
+      expect(balance).to.equal(parseEther("10"));
     });
 
     it("Should update total supply after token purchase", async function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       
       const initialSupply = await governanceToken.read.totalSupply();
-      await governanceToken.write.buyTokens({ value: parseEther("0.1"), account: addr1.account });
+      await governanceToken.write.buyTokens({ 
+        value: parseEther("0.1"), 
+        account: addr1.account 
+      });
       
       const finalSupply = await governanceToken.read.totalSupply();
       expect(finalSupply).to.equal(initialSupply + 10n * parseEther("1"));
@@ -41,7 +59,10 @@ describe("GovernanceToken", function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       
       await expect(
-        governanceToken.write.buyTokens({ value: 0n, account: addr1.account })
+        governanceToken.write.buyTokens({ 
+          value: 0n, 
+          account: addr1.account 
+        })
       ).to.be.rejectedWith("Devi inviare Ether per acquistare token");
     });
   });
@@ -50,14 +71,23 @@ describe("GovernanceToken", function () {
     it("Should allow owner to withdraw accumulated ETH", async function () {
       const { governanceToken, owner, addr1, publicClient } = await loadFixture(deployGovernanceTokenFixture);
       
-      // Buy tokens first
-      await governanceToken.write.buyTokens({ value: parseEther("0.1"), account: addr1.account });
+      await governanceToken.write.buyTokens({ 
+        value: parseEther("0.1"), 
+        account: addr1.account 
+      });
       
-      const initialBalance = await publicClient.getBalance({ address: owner.account.address });
-      await governanceToken.write.withdraw({ account: owner.account });
-      const finalBalance = await publicClient.getBalance({ address: owner.account.address });
+      const initialBalance = await publicClient.getBalance({ 
+        address: owner.account.address 
+      });
       
-      // expect(finalBalance).to.be.greaterThan(initialBalance);
+      await governanceToken.write.withdraw({ 
+        account: owner.account 
+      });
+      
+      const finalBalance = await publicClient.getBalance({ 
+        address: owner.account.address 
+      });
+      
       expect(finalBalance > initialBalance).to.be.true;
     });
 
@@ -65,7 +95,9 @@ describe("GovernanceToken", function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       
       await expect(
-        governanceToken.write.withdraw({ account: addr1.account })
+        governanceToken.write.withdraw({ 
+          account: addr1.account 
+        })
       ).to.be.rejected;
     });
   });
@@ -74,8 +106,14 @@ describe("GovernanceToken", function () {
     it("Should accurately track multiple purchases from same address", async function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       
-      await governanceToken.write.buyTokens({ value: parseEther("0.05"), account: addr1.account });
-      await governanceToken.write.buyTokens({ value: parseEther("0.05"), account: addr1.account });
+      await governanceToken.write.buyTokens({ 
+        value: parseEther("0.05"), 
+        account: addr1.account 
+      });
+      await governanceToken.write.buyTokens({ 
+        value: parseEther("0.05"), 
+        account: addr1.account 
+      });
       
       const finalBalance = await governanceToken.read.balanceOf([addr1.account.address]);
       expect(finalBalance).to.equal(10n * parseEther("1"));
@@ -84,10 +122,15 @@ describe("GovernanceToken", function () {
     it("Should protect against reentrancy attacks", async function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       
-      // Simulating multiple simultaneous purchases (should work safely)
       await Promise.all([
-        governanceToken.write.buyTokens({ value: parseEther("0.01"), account: addr1.account }),
-        governanceToken.write.buyTokens({ value: parseEther("0.01"), account: addr1.account })
+        governanceToken.write.buyTokens({ 
+          value: parseEther("0.01"), 
+          account: addr1.account 
+        }),
+        governanceToken.write.buyTokens({ 
+          value: parseEther("0.01"), 
+          account: addr1.account 
+        })
       ]);
       
       const balance = await governanceToken.read.balanceOf([addr1.account.address]);
