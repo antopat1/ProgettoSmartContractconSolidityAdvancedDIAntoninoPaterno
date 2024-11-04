@@ -223,150 +223,6 @@ describe("DAO", function () {
   });
 
 
-  
-  // describe("Proposal Expiration and Voting Period", function () {
-  //   it("Should handle proposal expiration correctly", async function () {
-  //     const { dao, governanceToken, addr1, addr2 } = await loadFixture(deployDAOFixture);
-      
-  //     // Setup: Acquisto token per poter creare e votare proposte
-  //     await governanceToken.write.buyTokens({
-  //       account: addr1.account.address,
-  //       value: parseEther("0.01")
-  //     });
-      
-  //     await governanceToken.write.buyTokens({
-  //       account: addr2.account.address,
-  //       value: parseEther("0.01")
-  //     });
-
-  //     // Step 1: Creazione della proposta
-  //     await dao.write.createProposal([
-  //       "Proposta con scadenza",
-  //       "Test della scadenza della proposta",
-  //       addr2.account.address,
-  //       parseEther("1")
-  //     ], {
-  //       account: addr1.account.address
-  //     });
-
-  //     // Step 2: Voto prima della scadenza
-  //     await dao.write.vote([0n, true, false], {
-  //       account: addr1.account.address
-  //     });
-
-  //     // Verifica che il voto sia stato registrato
-  //     const proposalBeforeExpiry = await dao.read.getProposal([0n]);
-  //     expect(proposalBeforeExpiry.forVotes).to.be.greaterThan(0n);
-
-  //     // Step 3: Avanziamo il tempo di una settimana più un secondo
-  //     await time.increase(7 * 24 * 60 * 60 + 1);
-
-  //     // Step 4: Tentativo di voto dopo la scadenza
-  //     try {
-  //       await dao.write.vote([0n, true, false], {
-  //         account: addr2.account.address
-  //       });
-  //       expect.fail("Il voto non dovrebbe essere permesso dopo la scadenza");
-  //     } catch (error: any) {
-  //       expect(error.message).to.include("revert");
-  //     }
-
-  //     // Step 5: Recupero delle proposte scadute
-  //     await dao.write.recoverUnexecutedProposals({
-  //       account: addr1.account.address
-  //     });
-
-  //     // Step 6: Verifiche finali
-  //     const proposalAfterExpiry = await dao.read.getProposal([0n]);
-  //     expect(proposalAfterExpiry.executed).to.be.true;
-  //     expect(proposalAfterExpiry.passed).to.be.false;
-
-  //     // Verifica che non ci siano stati trasferimenti di token
-  //     const recipientBalance = await governanceToken.read.balanceOf([addr2.account.address]);
-  //     const initialBalance = parseEther("0.01") / parseEther("0.01"); // Conversione dal valore in ether ai token
-  //     expect(recipientBalance).to.equal(initialBalance);
-  //   });
-
-  //   it("Should allow multiple proposal recovery at once", async function () {
-  //     const { dao, governanceToken, addr1 } = await loadFixture(deployDAOFixture);
-      
-  //     // Setup: Token purchase
-  //     await governanceToken.write.buyTokens({
-  //       account: addr1.account.address,
-  //       value: parseEther("0.01")
-  //     });
-
-  //     // Step 1: Creazione di multiple proposte
-  //     for (let i = 0; i < 3; i++) {
-  //       await dao.write.createProposal([
-  //         `Proposta ${i}`,
-  //         "Test multiple proposte",
-  //         addr1.account.address,
-  //         parseEther("1")
-  //       ], {
-  //         account: addr1.account.address
-  //       });
-  //     }
-
-  //     // Step 2: Avanziamo il tempo
-  //     await time.increase(7 * 24 * 60 * 60 + 1);
-
-  //     // Step 3: Recupero di tutte le proposte scadute
-  //     await dao.write.recoverUnexecutedProposals({
-  //       account: addr1.account.address
-  //     });
-
-  //     // Step 4: Verifica che tutte le proposte siano state chiuse
-  //     for (let i = 0; i < 3; i++) {
-  //       const proposal = await dao.read.getProposal([BigInt(i)]);
-  //       expect(proposal.executed).to.be.true;
-  //       expect(proposal.passed).to.be.false;
-  //     }
-  //   });
-
-  //   it("Should track proposal timing correctly", async function () {
-  //     const { dao, governanceToken, addr1, addr2 } = await loadFixture(deployDAOFixture);
-      
-  //     // Setup: Token purchase
-  //     await governanceToken.write.buyTokens({
-  //       account: addr1.account.address,
-  //       value: parseEther("0.01")
-  //     });
-
-  //     // Step 1: Creazione proposta
-  //     await dao.write.createProposal([
-  //       "Proposta con timing",
-  //       "Test del timing della proposta",
-  //       addr2.account.address,
-  //       parseEther("1")
-  //     ], {
-  //       account: addr1.account.address
-  //     });
-
-  //     // Step 2: Avanziamo il tempo di quasi una settimana (6 giorni)
-  //     await time.increase(6 * 24 * 60 * 60);
-
-  //     // Il voto dovrebbe ancora essere possibile
-  //     await dao.write.vote([0n, true, false], {
-  //       account: addr1.account.address
-  //     });
-
-  //     const proposalMidway = await dao.read.getProposal([0n]);
-  //     expect(proposalMidway.executed).to.be.false;
-      
-  //     // Step 3: Avanziamo il tempo oltre la scadenza
-  //     await time.increase(2 * 24 * 60 * 60); // Altri 2 giorni
-
-  //     // Step 4: Recupero della proposta scaduta
-  //     await dao.write.recoverUnexecutedProposals({
-  //       account: addr1.account.address
-  //     });
-
-  //     const proposalEnd = await dao.read.getProposal([0n]);
-  //     expect(proposalEnd.executed).to.be.true;
-  //   });
-  // });
-
   describe("Proposal Expiration and Voting Period", function () {
     it("Should handle proposal expiration correctly", async function () {
       const { dao, governanceToken, addr1, addr2 } = await loadFixture(deployDAOFixture);
@@ -422,8 +278,8 @@ describe("DAO", function () {
       expect(proposalAfterExpiry.passed).to.be.false;
   
       const recipientBalance = await governanceToken.read.balanceOf([addr2.account.address]);
-      // Correggiamo il calcolo dell'expected balance
-      const expectedBalance = 1000000000000000000n; // 1 token = 10^18 (considerando 18 decimali)
+      
+      const expectedBalance = 1000000000000000000n; 
       expect(recipientBalance).to.equal(expectedBalance);
     });
   
@@ -495,7 +351,7 @@ describe("DAO", function () {
       expect(proposalMidway.executed).to.be.false;
       
       // Step 3: Avanziamo il tempo oltre la scadenza
-      await time.increase(2 * 24 * 60 * 60); // Altri 2 giorni
+      await time.increase(2 * 24 * 60 * 60); 
   
       // Step 4: Recupero della proposta scaduta
       await dao.write.recoverUnexecutedProposals({
