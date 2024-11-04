@@ -3,21 +3,24 @@ pragma solidity ^0.8.9;
 
 import "./GovernanceToken.sol";
 import "./Proposal.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title DAO
 /// @dev Gestione delle votazioni, esecuzione delle proposte e finanziamento di progetti
-contract DAO is GovernanceToken, Proposal {
+contract DAO is Proposal, Ownable {
 
     uint public constant PROPOSAL_DURATION = 1 weeks;
     uint public executive = 1;
     address public daoCreator;      // Variabile per memorizzare l'indirizzo del creatore della DAO
-    uint public proposalCounter;    // Contatore per il numero totale di proposte create
+    uint public proposalCounter;     // Contatore per il numero totale di proposte create
+    GovernanceToken public governanceToken;  // Riferimento al contratto del token di governance
 
-    // Costruttore che passa `_tokenAddress` al contratto `Proposal` e inizializza variabili
+    // Costruttore che passa _tokenAddress al contratto Proposal e inizializza variabili
     constructor(address _tokenAddress) Proposal(_tokenAddress) {
         daoCreator = msg.sender;    // Imposta il creatore della DAO
         executive = 1;              // Imposta lo stato iniziale di executive
         proposalCounter = 0;        // Inizializza il contatore delle proposte a zero
+        governanceToken = GovernanceToken(_tokenAddress); // Inizializza il riferimento al token
     }
 
     // Evento per notificare quando viene espresso un voto
@@ -26,18 +29,18 @@ contract DAO is GovernanceToken, Proposal {
     /// @notice Vota su una proposta. Gli utenti possono votare a favore, contro o astenersi.
     /// @dev Il peso del voto è proporzionato ai token posseduti dall'utente.
     function vote(uint _proposalId, bool _support, bool _abstain) public {
-        require(balanceOf(msg.sender) > 0, "Devi possedere dei token per votare.");
+        require(governanceToken.balanceOf(msg.sender) > 0, "Devi possedere dei token per votare.");
         require(executive == 1, "La votazione e' chiusa.");
 
         ProposalDetails storage proposal = allProposals[_proposalId];
         require(!proposal.executed, "Proposta gia' eseguita.");
 
         if (_abstain) {
-            proposal.abstainVotes += balanceOf(msg.sender);
+            proposal.abstainVotes += governanceToken.balanceOf(msg.sender);
         } else if (_support) {
-            proposal.forVotes += balanceOf(msg.sender);
+            proposal.forVotes += governanceToken.balanceOf(msg.sender);
         } else {
-            proposal.againstVotes += balanceOf(msg.sender);
+            proposal.againstVotes += governanceToken.balanceOf(msg.sender);
         }
 
         emit Voted(_proposalId, msg.sender, _support, _abstain);
@@ -57,7 +60,7 @@ contract DAO is GovernanceToken, Proposal {
         if (percentageFor >= 50) {
             proposal.passed = true;
             if (proposal.recipient != address(0) && proposal.amount > 0) {
-                _mint(proposal.recipient, proposal.amount); // Finanziamo il progetto
+                governanceToken.mint(proposal.recipient, proposal.amount);
             }
         } else {
             proposal.passed = false;

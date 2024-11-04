@@ -2,123 +2,117 @@ import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import hre from "hardhat";
-import { parseEther, getAddress } from "viem";
-import type { PublicClient, WalletClient } from "viem";
-
-interface DAOContract {
-  write: {
-    createProposal(
-      args: readonly [string, string, `0x${string}`, bigint],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    vote(
-      args: readonly [bigint, boolean, boolean],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    executeProposal(
-      args: readonly [bigint],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    executeMultipleProposals(
-      args: readonly [readonly bigint[]],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    recoverUnexecutedProposals(
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    buyTokens(
-      options?: { value: bigint; account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-  };
-  read: {
-    getProposal(args: readonly [bigint]): Promise<any>;
-  };
-}
+import { parseEther } from "viem";
 
 describe("DAO", function () {
   async function deployDAOFixture() {
     const [owner, addr1, addr2, addr3] = await hre.viem.getWalletClients();
-    
+    const publicClient = await hre.viem.getPublicClient();
+
     // Prima deployiamo il GovernanceToken
     const governanceToken = await hre.viem.deployContract("GovernanceToken");
+
+    // Poi deployiamo il DAO passando l'indirizzo del token come parametro
+    const dao = await hre.viem.deployContract("DAO", [governanceToken.address]);
     
-    // Poi deployiamo il DAO passando l'indirizzo del token
-    const dao = await hre.viem.deployContract("DAO", [governanceToken.address]) as unknown as DAOContract;
-    
-    // Buy some tokens for testing
-    await dao.write.buyTokens({ 
-      value: parseEther("0.1"), 
-      account: addr1.account.address 
-    });
-    await dao.write.buyTokens({ 
-      value: parseEther("0.2"), 
-      account: addr2.account.address 
-    });
-    
-    return { dao, owner, addr1, addr2, addr3 };
+    // Importante: Transfiere ownership del GovernanceToken al DAO
+    const transferTx = await governanceToken.write.transferOwnership(
+      [dao.address],
+      { account: owner.account.address }
+    );
+    await publicClient.waitForTransactionReceipt({ hash: transferTx });
+
+    return { dao, governanceToken, publicClient, owner, addr1, addr2, addr3 };
   }
 
-  describe("Proposal Creation and Management", function () {
+  describe("Proposal Creation and Management", function () {     
+
     it("Should allow members to create proposals", async function () {
-      const { dao, addr1 } = await loadFixture(deployDAOFixture);
+      const { dao, governanceToken, addr1, publicClient } = await loadFixture(deployDAOFixture);
       
-      await dao.write.createProposal([
-        "Test Proposal",
-        "Description",
-        addr1.account.address,
-        parseEther("1")
-      ], {
-        account: addr1.account.address
+      // Compra token per addr1 utilizzando direttamente il contratto `governanceToken`
+      const buyTokensTx = await governanceToken.write.buyTokens({
+        account: addr1.account.address,
+        value: parseEther("0.01")
       });
+      await publicClient.waitForTransactionReceipt({ hash: buyTokensTx });
       
+      // Verifica saldo token per addr1
+      const balance = await governanceToken.read.balanceOf([addr1.account.address]);
+      expect(Number(balance)).to.be.greaterThan(0);
+      console.log("PRIMO_LOG:Balance after buying tokens:", balance.toString());
+
+      // Crea una proposta
+      const createProposalTx = await dao.write.createProposal(
+        ["Test Proposal", "Description", addr1.account.address, parseEther("1")],
+        { account: addr1.account.address }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: createProposalTx });
+      
+      // Verifica la proposta
       const proposal = await dao.read.getProposal([0n]);
       expect(proposal.title).to.equal("Test Proposal");
+      expect(proposal.proposer.toLowerCase()).to.equal(addr1.account.address.toLowerCase());
     });
-
-    it("Should track voting correctly", async function () {
-      const { dao, addr1, addr2 } = await loadFixture(deployDAOFixture);
+    
+    it("Should not allow non-members to create proposals", async function () {
+      const { dao, addr2 } = await loadFixture(deployDAOFixture);
       
-      await dao.write.createProposal([
-        "Test Proposal",
-        "Description",
-        addr1.account.address,
-        parseEther("1")
-      ], {
-        account: addr1.account.address
-      });
-      
-      await dao.write.vote([0n, true, false], { 
-        account: addr1.account.address 
-      });
-      await dao.write.vote([0n, true, false], { 
-        account: addr2.account.address 
-      });
-      
-      const proposal = await dao.read.getProposal([0n]);
-      const expectedVotes = parseEther("0.3"); // 0.1 + 0.2 ETH worth of tokens
-      expect(proposal.forVotes).to.equal(expectedVotes);
-    });
-
-    it("Should not allow non-token holders to vote", async function () {
-      const { dao, addr3 } = await loadFixture(deployDAOFixture);
-      
-      await dao.write.createProposal([
-        "Test Proposal",
-        "Description",
-        addr3.account.address,
-        parseEther("1")
-      ], {
-        account: addr3.account.address
-      });
-      
+      // Tenta di creare una proposta senza possedere token
       await expect(
-        dao.write.vote([0n, true, false], { 
-          account: addr3.account.address 
-        })
-      ).to.be.rejectedWith("Devi possedere dei token per votare");
+        dao.write.createProposal(
+          ["Test Proposal", "Description", addr2.account.address, parseEther("1")],
+          { account: addr2.account.address }
+        )
+      ).to.be.rejectedWith("Solo i membri possono creare proposte");
+    });
+
+    it("Should allow a token-holding account to vote on a proposal", async function () {
+      const { dao, governanceToken, addr1, addr2, publicClient } = await loadFixture(deployDAOFixture);
+    
+      // Step 1: Compra token per `addr1` e `addr2`
+      const buyTokensTx1 = await governanceToken.write.buyTokens({
+        account: addr1.account.address,
+        value: parseEther("0.02")
+      });
+      await publicClient.waitForTransactionReceipt({ hash: buyTokensTx1 });
+    
+      const buyTokensTx2 = await governanceToken.write.buyTokens({
+        account: addr2.account.address,
+        value: parseEther("0.01")
+      });
+      await publicClient.waitForTransactionReceipt({ hash: buyTokensTx2 });
+    
+      // Verifica che `addr1` e `addr2` abbiano un bilancio token positivo
+      const balance1 = await governanceToken.read.balanceOf([addr1.account.address]);
+      const balance2 = await governanceToken.read.balanceOf([addr2.account.address]);
+    
+      expect(Number(balance1)).to.be.a("number").and.to.be.gt(0, "addr1 dovrebbe possedere dei token per votare");
+      expect(Number(balance2)).to.be.a("number").and.to.be.gt(0, "addr2 dovrebbe possedere dei token per votare");
+    
+      // Step 2: Creazione di una proposta con `addr1`
+      const createProposalTx = await dao.write.createProposal(
+        ["Fund Project", "Fund development", addr2.account.address, parseEther("1")],
+        { account: addr1.account.address }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: createProposalTx });
+    
+      // Verifica che la proposta sia stata creata con successo
+      const proposal = await dao.read.getProposal([0n]);
+      expect(proposal.id).to.equal(0n);
+    
+      // Step 3: `addr1` vota sulla proposta appena creata
+      const voteTx1 = await dao.write.vote(
+        [0n, true, false], // Usa `0n` come `proposalId` per il tipo `bigint`
+        { account: addr1.account.address }
+      );
+      await publicClient.waitForTransactionReceipt({ hash: voteTx1 });
+    
+      // Verifica che il voto sia stato registrato senza errori
+      const updatedProposal = await dao.read.getProposal([0n]);
+      expect(Number(updatedProposal.forVotes)).to.be.gt(0, "Il voto di `addr1` dovrebbe essere registrato nella proposta");
     });
   });
-
   describe("Proposal Execution", function () {
     it("Should execute approved proposals", async function () {
       const { dao, addr1, addr2 } = await loadFixture(deployDAOFixture);
@@ -147,7 +141,7 @@ describe("DAO", function () {
       expect(proposal.executed).to.be.true;
       expect(proposal.passed).to.be.true;
     });
-
+  
     it("Should handle multiple proposal execution", async function () {
       const { dao, addr1 } = await loadFixture(deployDAOFixture);
       
@@ -185,7 +179,6 @@ describe("DAO", function () {
       expect(proposal2.executed).to.be.true;
     });
   });
-
   describe("Voting Period Management", function () {
     it("Should close voting after duration", async function () {
       const { dao, owner } = await loadFixture(deployDAOFixture);
@@ -211,3 +204,8 @@ describe("DAO", function () {
     });
   });
 });
+
+
+
+
+

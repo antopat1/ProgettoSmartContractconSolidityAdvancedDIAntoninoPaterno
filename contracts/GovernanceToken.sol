@@ -26,4 +26,9 @@ contract GovernanceToken is ERC20, Ownable, ReentrancyGuard {
         require(balance > 0, "Nessun Ether da prelevare.");
         payable(owner()).transfer(balance); // Trasferiamo il saldo al proprietario del contratto
     }
+
+    /// @notice Funzione per mintare nuovi token. Solo l'owner (DAO) può chiamarla.
+    function mint(address to, uint256 amount) external onlyOwner {
+        _mint(to, amount);
+    }
 }
