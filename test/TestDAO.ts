@@ -40,7 +40,7 @@ describe("DAO", function () {
       // Verifica saldo token per addr1
       const balance = await governanceToken.read.balanceOf([addr1.account.address]);
       expect(Number(balance)).to.be.greaterThan(0);
-      console.log("PRIMO_LOG:Balance after buying tokens:", balance.toString());
+      // console.log("PRIMO_LOG:Balance after buying tokens:", balance.toString());
 
       // Crea una proposta
       const createProposalTx = await dao.write.createProposal(
