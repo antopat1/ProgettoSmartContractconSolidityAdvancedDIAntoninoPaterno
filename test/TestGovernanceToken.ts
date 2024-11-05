@@ -1,21 +1,8 @@
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import hre from "hardhat";
-import { getAddress, parseEther } from "viem";
-import type { Account } from "viem";
-
-// Aggiungiamo l'interfaccia per il contratto
-interface GovernanceTokenContract {
-  write: {
-    buyTokens(options?: { value: bigint; account: Account }): Promise<`0x${string}`>;
-    withdraw(options?: { account: Account }): Promise<`0x${string}`>;
-  };
-  read: {
-    TOKEN_PRICE(): Promise<bigint>;
-    balanceOf(args: readonly [`0x${string}`]): Promise<bigint>;
-    totalSupply(): Promise<bigint>;
-  };
-}
+import { parseEther } from "viem";
+import { GovernanceTokenContract, toAddress } from '../interfaces/contracts';
 
 describe("GovernanceToken", function () {
   async function deployGovernanceTokenFixture() {
@@ -35,7 +22,7 @@ describe("GovernanceToken", function () {
       
       await governanceToken.write.buyTokens({ 
         value: parseEther("0.1"), 
-        account: addr1.account 
+        account: toAddress(addr1.account) 
       });
       
       const balance = await governanceToken.read.balanceOf([addr1.account.address]);
@@ -48,7 +35,7 @@ describe("GovernanceToken", function () {
       const initialSupply = await governanceToken.read.totalSupply();
       await governanceToken.write.buyTokens({ 
         value: parseEther("0.1"), 
-        account: addr1.account 
+        account: toAddress(addr1.account) 
       });
       
       const finalSupply = await governanceToken.read.totalSupply();
@@ -61,7 +48,7 @@ describe("GovernanceToken", function () {
       await expect(
         governanceToken.write.buyTokens({ 
           value: 0n, 
-          account: addr1.account 
+          account: toAddress(addr1.account) 
         })
       ).to.be.rejectedWith("Devi inviare Ether per acquistare token");
     });
@@ -73,7 +60,7 @@ describe("GovernanceToken", function () {
       
       await governanceToken.write.buyTokens({ 
         value: parseEther("0.1"), 
-        account: addr1.account 
+        account: toAddress(addr1.account) 
       });
       
       const initialBalance = await publicClient.getBalance({ 
@@ -108,11 +95,11 @@ describe("GovernanceToken", function () {
       
       await governanceToken.write.buyTokens({ 
         value: parseEther("0.05"), 
-        account: addr1.account 
+        account: toAddress(addr1.account) 
       });
       await governanceToken.write.buyTokens({ 
         value: parseEther("0.05"), 
-        account: addr1.account 
+        account: toAddress(addr1.account) 
       });
       
       const finalBalance = await governanceToken.read.balanceOf([addr1.account.address]);
@@ -125,11 +112,11 @@ describe("GovernanceToken", function () {
       await Promise.all([
         governanceToken.write.buyTokens({ 
           value: parseEther("0.01"), 
-          account: addr1.account 
+          account: toAddress(addr1.account) 
         }),
         governanceToken.write.buyTokens({ 
           value: parseEther("0.01"), 
-          account: addr1.account 
+          account: toAddress(addr1.account) 
         })
       ]);
       

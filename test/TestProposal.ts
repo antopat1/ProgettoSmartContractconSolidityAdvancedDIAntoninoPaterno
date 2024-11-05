@@ -2,64 +2,8 @@ import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { getAddress, parseEther } from "viem";
 import hre from "hardhat";
+import { DAOContract, GovernanceTokenContract ,compareBigInt } from '../interfaces/contracts';
 
-interface DAOContract {
-  address: `0x${string}`;
-  write: {
-    createProposal(
-      args: readonly [string, string, `0x${string}`, bigint],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    vote(
-      args: readonly [bigint, boolean, boolean],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    executeProposal(
-      args: readonly [bigint],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    executeMultipleProposals(
-      args: readonly [bigint[]],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    closeVoting(options?: { account: `0x${string}` }): Promise<`0x${string}`>;
-  };
-  read: {
-    getProposal(args: readonly [bigint]): Promise<any>;
-    executive(): Promise<bigint>;
-  };
-}
-
-interface GovernanceTokenContract {
-  address: `0x${string}`;
-  write: {
-    buyTokens(options?: {
-      value: bigint;
-      account: `0x${string}`;
-    }): Promise<`0x${string}`>;
-    transferOwnership( // Aggiunta questa funzione
-      args: readonly [`0x${string}`],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-    mint( // Opzionalmente, potresti voler aggiungere anche questa
-      args: readonly [`0x${string}`, bigint],
-      options?: { account: `0x${string}` }
-    ): Promise<`0x${string}`>;
-  };
-  read: {
-    balanceOf(args: readonly [`0x${string}`]): Promise<bigint>;
-  };
-}
-
-const compareBigInt = (actual: bigint, expected: bigint) => {
-  return {
-    eq: () => expect(actual === expected).to.be.true,
-    gt: () => expect(actual > expected).to.be.true,
-    gte: () => expect(actual >= expected).to.be.true,
-    lt: () => expect(actual < expected).to.be.true,
-    lte: () => expect(actual <= expected).to.be.true,
-  };
-};
 
 describe("DAO Contract Tests", function () {
   async function deployContractsFixture() {
