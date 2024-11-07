@@ -1,68 +1,20 @@
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
-import { getAddress, parseEther } from "viem";
-import hre from "hardhat";
-import { DAOContract, GovernanceTokenContract ,compareBigInt } from '../interfaces/contracts';
-
+import { getAddress } from "viem";
+import { deployContractsFixture } from "../scripts/deployContracts";
 
 describe("DAO Contract Tests", function () {
-  async function deployContractsFixture() {
-    const [owner, user1, user2, user3] = await hre.viem.getWalletClients();
-
-    const governanceToken = (await hre.viem.deployContract(
-      "GovernanceToken"
-    )) as unknown as GovernanceTokenContract;
-    const dao = (await hre.viem.deployContract("DAO", [
-      governanceToken.address,
-    ])) as unknown as DAOContract;
-
-    const publicClient = await hre.viem.getPublicClient();
-
-    // NOTA IMPORTANTE: Qui transferiamo l'ownership del GovernanceToken al contratto DAO
-    // Questo è necessario per permettere al DAO di mintare token quando le proposte vengono approvate
-    await governanceToken.write.transferOwnership([dao.address], {
-      account: owner.account.address,
-    });
-
-    // Acquisto token per i test
-    const tokenPrice = parseEther("0.01");
-    await governanceToken.write.buyTokens({
-      value: tokenPrice * 100n,
-      account: owner.account.address,
-    });
-
-    await governanceToken.write.buyTokens({
-      value: tokenPrice * 50n,
-      account: user1.account.address,
-    });
-
-    await governanceToken.write.buyTokens({
-      value: tokenPrice * 25n,
-      account: user2.account.address,
-    });
-
-    return {
-      dao,
-      governanceToken,
-      owner: owner.account.address,
-      user1: user1.account.address,
-      user2: user2.account.address,
-      user3: user3.account.address,
-      publicClient,
-    };
-  }
-
-  describe("Creazione delle proposte", function () {
-    it("Dovrebbe creare una proposta con ID univoco e tutti i dettagli corretti", async function () {
+  describe("Proposal Creation", function () {
+    it("Should create a proposal with a unique ID and all correct details", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
 
       const title = "Prima Proposta";
       const description = "Descrizione dettagliata della prima proposta";
-      const recipient = user1;
+      const recipient = user1.account.address as `0x${string}`;
       const amount = 1000n;
 
       await dao.write.createProposal([title, description, recipient, amount], {
-        account: owner,
+        account: owner.account.address as `0x${string}`,
       });
 
       const proposal = await dao.read.getProposal([0n]);
@@ -72,25 +24,27 @@ describe("DAO Contract Tests", function () {
       expect(proposal.description).to.equal(description);
       expect(getAddress(proposal.recipient)).to.equal(getAddress(recipient));
       expect(proposal.amount).to.equal(amount);
-      expect(getAddress(proposal.proposer)).to.equal(getAddress(owner));
+      expect(getAddress(proposal.proposer)).to.equal(getAddress(owner.account.address));
       expect(proposal.executed).to.be.false;
       expect(proposal.passed).to.be.false;
       expect(proposal.forVotes).to.equal(0n);
       expect(proposal.againstVotes).to.equal(0n);
       expect(proposal.abstainVotes).to.equal(0n);
     });
-
-    it("Dovrebbe rifiutare proposte con descrizione vuota", async function () {
+    
+    it("Should reject proposals with an empty description", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
-
+    
       await expect(
-        dao.write.createProposal(["Titolo", "", user1, 100n], {
-          account: owner,
-        })
+        dao.write.createProposal(
+          ["Titolo", "", user1.account.address, 100n],
+          { account: owner.account.address }
+        )
       ).to.be.rejectedWith("La descrizione non puo' essere vuota");
     });
+   
 
-    it("Dovrebbe permettere proposte senza recipient e amount", async function () {
+    it("Should allow proposals without recipient and amount", async function () {
       const { dao, owner } = await loadFixture(deployContractsFixture);
 
       await dao.write.createProposal(
@@ -100,7 +54,7 @@ describe("DAO Contract Tests", function () {
           "0x0000000000000000000000000000000000000000",
           0n,
         ],
-        { account: owner }
+        { account: owner.account.address }
       );
 
       const proposal = await dao.read.getProposal([0n]);
@@ -111,8 +65,8 @@ describe("DAO Contract Tests", function () {
     });
   });
 
-  describe("Votazione e Esecuzione", function () {
-    it("Dovrebbe permettere ai possessori di token di votare", async function () {
+  describe("Voting and Execution", function () {
+    it("Should allow token holders to vote", async function () {
       const { dao, owner } = await loadFixture(deployContractsFixture);
 
       await dao.write.createProposal(
@@ -122,190 +76,162 @@ describe("DAO Contract Tests", function () {
           "0x0000000000000000000000000000000000000000",
           0n,
         ],
-        { account: owner }
+        { account: owner.account.address }
       );
 
-      await dao.write.vote([0n, true, false], { account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
       const proposal = await dao.read.getProposal([0n]);
-
-      // Utilizzo della utility function
-      compareBigInt(proposal.forVotes, 0n).gt();
-
-      // Oppure usando la conversione a number
-      expect(Number(proposal.forVotes)).to.be.gt(0);
-
-      // Oppure usando il confronto diretto
       expect(proposal.forVotes > 0n).to.be.true;
     });
 
-    it("Dovrebbe eseguire correttamente una proposta approvata", async function () {
+    it("Should correctly execute an approved proposal", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
 
       await dao.write.createProposal(
-        ["Proposta Test", "Descrizione test", user1, 100n],
-        { account: owner }
+        ["Proposta Test", "Descrizione test", user1.account.address, 100n],
+        { account: owner.account.address }
       );
 
-      await dao.write.vote([0n, true, false], { account: owner });
-      await dao.write.executeProposal([0n], { account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.executeProposal([0n], { account: owner.account.address });
 
       const proposal = await dao.read.getProposal([0n]);
       expect(proposal.executed).to.be.true;
     });
   });
 
-  describe("Chiusura delle votazioni", function () {
-    it("Dovrebbe permettere la chiusura delle votazioni solo dopo l'esecuzione di tutte le proposte", async function () {
+  describe("Closing Votes", function () {
+    it("Should allow closing of votes only after all proposals are executed", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
 
       await dao.write.createProposal(
-        ["Proposta Finale", "Descrizione", user1, 100n],
-        { account: owner }
+        ["Proposta Finale", "Descrizione", user1.account.address, 100n],
+        { account: owner.account.address }
       );
 
-      await dao.write.vote([0n, true, false], { account: owner });
-      await dao.write.executeProposal([0n], { account: owner });
-      await dao.write.closeVoting({ account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.executeProposal([0n], { account: owner.account.address });
+      await dao.write.closeVoting({ account: owner.account.address });
 
       const executive = await dao.read.executive();
       expect(executive).to.equal(0n);
     });
 
-    it("Non dovrebbe permettere di votare su una proposta dopo che è stata eseguita", async function () {
-      const { dao, governanceToken, owner, user1, user2 } = await loadFixture(
-        deployContractsFixture
-      );
+    it("Should not allow voting on a proposal after it has been executed", async function () {
+      const { dao, owner, user1, user2 } = await loadFixture(deployContractsFixture);
 
-      // Creazione della proposta
       await dao.write.createProposal(
-        ["Proposta Test", "Descrizione della proposta", user1, 100n],
-        { account: owner }
+        ["Proposta Test", "Descrizione della proposta", user1.account.address, 100n],
+        { account: owner.account.address }
       );
 
-      // Prima votazione (valida)
-      await dao.write.vote([0n, true, false], { account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.executeProposal([0n], { account: owner.account.address });
 
-      // Esecuzione della proposta
-      await dao.write.executeProposal([0n], { account: owner });
-
-      // Verifica che la proposta sia stata eseguita
       const proposal = await dao.read.getProposal([0n]);
       expect(proposal.executed).to.be.true;
 
-      // Tentativo di votare dopo l'esecuzione (dovrebbe fallire)
       await expect(
-        dao.write.vote([0n, true, false], { account: user2 })
+        dao.write.vote([0n, true, false], { account: user2.account.address })
       ).to.be.rejectedWith("Proposta gia' eseguita");
     });
   });
 
-  describe("Sistema di votazione", function () {
-    it("Dovrebbe permettere voti a favore, contro e astensioni", async function () {
-      const { dao, owner, user1, user2 } = await loadFixture(
-        deployContractsFixture
-      );
+  describe("Voting System", function () {
+    it("Should allow votes in favor, against, and abstentions", async function () {
+      const { dao, owner, user1, user2 } = await loadFixture(deployContractsFixture);
 
-      // Creiamo la proposta
       await dao.write.createProposal(
-        ["Test Votazione", "Descrizione", user1, 100n],
-        { account: owner }
+        ["Test Votazione", "Descrizione", user1.account.address, 100n],
+        { account: owner.account.address }
       );
 
-      // Voto a favore - nota il 0n invece di 0
-      await dao.write.vote([0n, true, false], { account: owner });
-
-      // Voto contro
-      await dao.write.vote([0n, false, false], { account: user1 });
-
-      // Astensione
-      await dao.write.vote([0n, false, true], { account: user2 });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.vote([0n, false, false], { account: user1.account.address });
+      await dao.write.vote([0n, false, true], { account: user2.account.address });
 
       const proposal = await dao.read.getProposal([0n]);
-      // Convertiamo il bigint in number per chai
       expect(Number(proposal.forVotes)).to.be.greaterThan(0);
       expect(Number(proposal.againstVotes)).to.be.greaterThan(0);
       expect(Number(proposal.abstainVotes)).to.be.greaterThan(0);
     });
 
-    it("Non dovrebbe permettere la creazione di proposte e il voto a chi non ha token", async function () {
+    it("Should not allow proposal creation and voting by non-token holders", async function () {
       const { dao, user3, owner } = await loadFixture(deployContractsFixture);
 
-      // Prima verifichiamo che non possa creare una proposta
       await expect(
-        dao.write.createProposal(["Proposta Test", "Descrizione", user3, 0n], {
-          account: user3,
-        })
+        dao.write.createProposal(
+          ["Proposta Test", "Descrizione", user3.account.address, 0n],
+          { account: user3.account.address }
+        )
       ).to.be.rejectedWith("Solo i membri possono creare proposte");
 
-      // Per testare il voto, dobbiamo prima creare una proposta con un account valido
-      // Assumiamo che owner abbia dei token (dal fixture)
       await dao.write.createProposal(
-        ["Proposta Test", "Descrizione", user3, 0n],
-        { account: owner }
+        ["Proposta Test", "Descrizione", user3.account.address, 0n],
+        { account: owner.account.address }
       );
 
-      // Ora testiamo che user3 non possa votare
       await expect(
-        dao.write.vote([0n, true, false], { account: user3 })
+        dao.write.vote([0n, true, false], { account: user3.account.address })
       ).to.be.rejectedWith("Devi possedere dei token per votare");
     });
   });
 
-  describe("Esecuzione delle proposte", function () {
-    it("Dovrebbe eseguire correttamente una proposta approvata", async function () {
+  describe("Proposal Execution", function () {
+    it("Should correctly execute an approved proposal", async function () {
       const { dao, owner, user1, governanceToken } = await loadFixture(
         deployContractsFixture
       );
 
       await dao.write.createProposal(
-        ["Proposta di Finanziamento", "Descrizione", user1, 1000n],
-        { account: owner }
+        ["Proposta di Finanziamento", "Descrizione", user1.account.address, 1000n],
+        { account: owner.account.address }
       );
 
-      await dao.write.vote([0n, true, false], { account: owner });
-      await dao.write.executeProposal([0n], { account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.executeProposal([0n], { account: owner.account.address });
 
       const proposal = await dao.read.getProposal([0n]);
       expect(proposal.executed).to.be.true;
       expect(proposal.passed).to.be.true;
 
-      const balance = await governanceToken.read.balanceOf([user1]);
-      compareBigInt(balance, 0n).gt();
+      const balance = await governanceToken.read.balanceOf([user1.account.address]);
+      expect(balance > 0n).to.be.true;
     });
 
-    it("Non dovrebbe eseguire una proposta già eseguita", async function () {
+    it("Should not execute an already executed proposal", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
 
       await dao.write.createProposal(
-        ["Proposta Test", "Descrizione", user1, 100n],
-        { account: owner }
+        ["Proposta Test", "Descrizione", user1.account.address, 100n],
+        { account: owner.account.address }
       );
 
-      await dao.write.vote([0n, true, false], { account: owner });
-      await dao.write.executeProposal([0n], { account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.executeProposal([0n], { account: owner.account.address });
 
       await expect(
-        dao.write.executeProposal([0n], { account: owner })
+        dao.write.executeProposal([0n], { account: owner.account.address })
       ).to.be.rejectedWith("Proposta gia' eseguita");
     });
 
-    it("Dovrebbe gestire correttamente proposte multiple", async function () {
+    it("Should correctly handle multiple proposals", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
 
       await dao.write.createProposal(
-        ["Proposta 1", "Descrizione 1", user1, 100n],
-        { account: owner }
+        ["Proposta 1", "Descrizione 1", user1.account.address, 100n],
+        { account: owner.account.address }
       );
 
       await dao.write.createProposal(
-        ["Proposta 2", "Descrizione 2", user1, 200n],
-        { account: owner }
+        ["Proposta 2", "Descrizione 2", user1.account.address, 200n],
+        { account: owner.account.address }
       );
 
-      await dao.write.vote([0n, true, false], { account: owner });
-      await dao.write.vote([1n, true, false], { account: owner });
+      await dao.write.vote([0n, true, false], { account: owner.account.address });
+      await dao.write.vote([1n, true, false], { account: owner.account.address });
 
-      await dao.write.executeMultipleProposals([[0n, 1n]], { account: owner });
+      await dao.write.executeMultipleProposals([[0n, 1n]], { account: owner.account.address });
 
       const proposal1 = await dao.read.getProposal([0n]);
       const proposal2 = await dao.read.getProposal([1n]);
@@ -315,3 +241,4 @@ describe("DAO Contract Tests", function () {
     });
   });
 });
+

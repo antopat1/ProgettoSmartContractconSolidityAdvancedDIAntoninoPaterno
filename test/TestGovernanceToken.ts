@@ -1,30 +1,20 @@
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
-import hre from "hardhat";
 import { parseEther } from "viem";
-import { GovernanceTokenContract, toAddress } from '../interfaces/contracts';
+import { toAddress } from '../interfaces/contracts';
+import { deployGovernanceTokenFixture } from "../scripts/deployContracts";
 
 describe("GovernanceToken", function () {
-  async function deployGovernanceTokenFixture() {
-    const [owner, addr1, addr2] = await hre.viem.getWalletClients();
-    
-    // Modifichiamo il tipo del contratto deployato
-    const governanceToken = await hre.viem.deployContract("GovernanceToken") as unknown as GovernanceTokenContract;
-    const publicClient = await hre.viem.getPublicClient();
-    
-    return { governanceToken, owner, addr1, addr2, publicClient };
-  }
-
   describe("Token Purchase", function () {
     it("Should allow users to buy tokens with correct ETH amount", async function () {
       const { governanceToken, addr1 } = await loadFixture(deployGovernanceTokenFixture);
       const tokenPrice = await governanceToken.read.TOKEN_PRICE();
-      
+
       await governanceToken.write.buyTokens({ 
         value: parseEther("0.1"), 
         account: toAddress(addr1.account) 
       });
-      
+
       const balance = await governanceToken.read.balanceOf([addr1.account.address]);
       expect(balance).to.equal(parseEther("10"));
     });
@@ -125,3 +115,4 @@ describe("GovernanceToken", function () {
     });
   });
 });
+

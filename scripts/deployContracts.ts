@@ -1,38 +1,37 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import hre from "hardhat";
 import { parseEther } from "viem";
 import { DAOContract, GovernanceTokenContract } from '../interfaces/contracts';
 
 export interface DeployedContracts {
   dao: DAOContract;
   governanceToken: GovernanceTokenContract;
-  owner: string;
-  user1: string;
-  user2: string;
-  user3: string;
+  owner: { account: { address: string }};
+  user1: { account: { address: string }};
+  user2: { account: { address: string }};
+  user3: { account: { address: string }};
   publicClient: any;
 }
 
-export async function deployContractsFixture(hre: HardhatRuntimeEnvironment): Promise<DeployedContracts> {
+// Funzione per deployare sia DAO che GovernanceToken
+export async function deployContractsFixture() {
   const [owner, user1, user2, user3] = await hre.viem.getWalletClients();
 
-  // Deploy GovernanceToken
   const governanceToken = (await hre.viem.deployContract(
     "GovernanceToken"
   )) as unknown as GovernanceTokenContract;
-
-  // Deploy DAO with GovernanceToken address
+  
   const dao = (await hre.viem.deployContract("DAO", [
     governanceToken.address,
   ])) as unknown as DAOContract;
 
   const publicClient = await hre.viem.getPublicClient();
 
-  // Transfer ownership of GovernanceToken to DAO
+  // NOTA: Transferiamo l'ownership del GovernanceToken al contratto DAO
   await governanceToken.write.transferOwnership([dao.address], {
     account: owner.account.address,
   });
 
-  // Buy tokens for testing
+  // Acquisto token per i test
   const tokenPrice = parseEther("0.01");
   await governanceToken.write.buyTokens({
     value: tokenPrice * 100n,
@@ -52,10 +51,39 @@ export async function deployContractsFixture(hre: HardhatRuntimeEnvironment): Pr
   return {
     dao,
     governanceToken,
-    owner: owner.account.address,
-    user1: user1.account.address,
-    user2: user2.account.address,
-    user3: user3.account.address,
+    owner,
+    user1,
+    user2,
+    user3,
     publicClient,
   };
+}
+
+// Funzione specifica per deployare GovernanceToken
+export async function deployGovernanceTokenFixture() {
+  const [owner, addr1, addr2] = await hre.viem.getWalletClients();
+
+  const governanceToken = (await hre.viem.deployContract(
+    "GovernanceToken"
+  )) as unknown as GovernanceTokenContract;
+
+  const publicClient = await hre.viem.getPublicClient();
+  return { governanceToken, owner, addr1, addr2, publicClient };
+}
+
+export async function deployDAOFixture() {
+  const [owner, addr1, addr2, addr3] = await hre.viem.getWalletClients();
+  const publicClient = await hre.viem.getPublicClient();
+
+  const governanceToken = await hre.viem.deployContract("GovernanceToken");
+
+  const dao = await hre.viem.deployContract("DAO", [governanceToken.address]);
+
+  const transferTx = await governanceToken.write.transferOwnership(
+    [dao.address],
+    { account: owner.account.address }
+  );
+  await publicClient.waitForTransactionReceipt({ hash: transferTx });
+
+  return { dao, governanceToken, publicClient, owner, addr1, addr2, addr3 };
 }
