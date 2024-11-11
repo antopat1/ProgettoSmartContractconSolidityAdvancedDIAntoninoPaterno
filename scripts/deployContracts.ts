@@ -1,80 +1,7 @@
 import hre from "hardhat";
-import { parseEther, formatEther, createWalletClient, custom, http } from "viem";
-import { DAOContract, GovernanceTokenContract } from '../interfaces/contracts';
-import { privateKeyToAccount } from 'viem/accounts';
-import { arbitrumSepolia } from "viem/chains";
-
-export interface DeployedContracts {
-  dao: DAOContract;
-  governanceToken: GovernanceTokenContract;
-  owner: { account: { address: string }};
-  user1: { account: { address: string }};
-  user2: { account: { address: string }};
-  user3: { account: { address: string }};
-  publicClient: any;
-}
-
-// Funzione di utility per il logging delle transazioni
-async function logTransaction(description: string, address: string) {
-  console.log("\n" + "=".repeat(50));
-  console.log(`${description}`);
-  console.log(`Contract Address: ${address}`);
-  console.log("=".repeat(50) + "\n");
-}
-
-// Funzione migliorata per attendere la conferma della transazione
-async function waitForTransactionConfirmation(
-  publicClient: any,
-  hash: `0x${string}`,
-  maxAttempts: number = 3
-): Promise<void> {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const receipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (receipt.status === 'success') return;
-      throw new Error(`Transaction failed with status: ${receipt.status}`);
-    } catch (error) {
-      if (attempt === maxAttempts) throw error;
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-  }
-}
-
-// Funzione semplificata per creare un wallet client per la rete pubblica
-async function createPublicNetworkWalletClient(privateKey: string) {
-  const account = privateKeyToAccount(`0x${privateKey}` as `0x${string}`);
-  
-  // Usa l'accesso diretto alla rete arbitrumSepolia configurata in hardhat.config.ts
-  const networkUrl = (hre.config.networks.arbitrumSepolia as any).url;
-
-  return createWalletClient({
-    account,
-    chain: arbitrumSepolia,
-    transport: http(networkUrl)
-  });
-}
-
-// Funzione per eseguire una transazione con gestione degli errori
-async function executeTransaction<T>(
-  action: () => Promise<T>,
-  publicClient: any,
-  isTestNetwork: boolean,
-  description?: string
-): Promise<T> {
-  try {
-    const result = await action();
-    if (!isTestNetwork && typeof result === 'string' && result.startsWith('0x')) {
-      await waitForTransactionConfirmation(publicClient, result as `0x${string}`);
-    }
-    if (description) {
-      console.log(`✅ ${description} completed successfully`);
-    }
-    return result;
-  } catch (error) {
-    console.error(`❌ Error during ${description || 'transaction'}:`, error);
-    throw error;
-  }
-}
+import { parseEther, formatEther } from "viem";
+import { DAOContract, GovernanceTokenContract } from '../interfaces/interfaces';
+import {logTransaction , createPublicNetworkWalletClient, executeTransaction } from "../utils/utils"
 
 // Funzione principale per il deployment
 export async function deployContractsFixture(isDirectDeploy: boolean = false) {
@@ -82,6 +9,10 @@ export async function deployContractsFixture(isDirectDeploy: boolean = false) {
   
   let owner, user1, user2, user3;
   
+  if (!isTestNetwork && !isDirectDeploy) {
+    throw new Error("This fixture can only be used in test environment");
+  }
+
   if (isTestNetwork) {
     [owner, user1, user2, user3] = await hre.viem.getWalletClients();
   } else {
@@ -220,3 +151,4 @@ async function main() {
 if (require.main === module) {
   main();
 }
+

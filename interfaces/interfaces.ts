@@ -1,15 +1,4 @@
-import { Account , getAddress } from "viem";
-import { expect } from "chai";
-
-export const compareBigInt = (actual: bigint, expected: bigint) => {
-  return {
-    eq: () => expect(actual === expected).to.be.true,
-    gt: () => expect(actual > expected).to.be.true,
-    gte: () => expect(actual >= expected).to.be.true,
-    lt: () => expect(actual < expected).to.be.true,
-    lte: () => expect(actual <= expected).to.be.true,
-  };
-};
+import { Account } from "viem";
 
 export interface DAOContract {
     address: `0x${string}`;
@@ -61,9 +50,7 @@ export interface DAOContract {
       totalSupply(): Promise<bigint>;
     };
   }
+  
+  
 
-// Funzione helper per convertire un Account in 0x${string}
-export function toAddress(account: Account): `0x${string}` {
-    return getAddress(account.address);
-  }
 

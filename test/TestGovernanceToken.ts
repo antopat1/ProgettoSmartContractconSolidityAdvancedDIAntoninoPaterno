@@ -1,7 +1,7 @@
 import { expect } from "chai";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
 import { parseEther } from "viem";
-import { toAddress } from '../interfaces/contracts';
+import { toAddress } from '../utils/utils';
 import { deployGovernanceTokenFixture } from "../scripts/deployContracts";
 
 describe("GovernanceToken", function () {

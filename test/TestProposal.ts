@@ -7,6 +7,10 @@ describe("DAO Contract Tests", function () {
   describe("Proposal Creation", function () {
     it("Should create a proposal with a unique ID and all correct details", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       const title = "Prima Proposta";
       const description = "Descrizione dettagliata della prima proposta";
@@ -34,7 +38,11 @@ describe("DAO Contract Tests", function () {
     
     it("Should reject proposals with an empty description", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
-    
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
+
       await expect(
         dao.write.createProposal(
           ["Titolo", "", user1.account.address, 100n],
@@ -86,6 +94,10 @@ describe("DAO Contract Tests", function () {
 
     it("Should correctly execute an approved proposal", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Proposta Test", "Descrizione test", user1.account.address, 100n],
@@ -103,6 +115,10 @@ describe("DAO Contract Tests", function () {
   describe("Closing Votes", function () {
     it("Should allow closing of votes only after all proposals are executed", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Proposta Finale", "Descrizione", user1.account.address, 100n],
@@ -119,6 +135,10 @@ describe("DAO Contract Tests", function () {
 
     it("Should not allow voting on a proposal after it has been executed", async function () {
       const { dao, owner, user1, user2 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Proposta Test", "Descrizione della proposta", user1.account.address, 100n],
@@ -130,6 +150,10 @@ describe("DAO Contract Tests", function () {
 
       const proposal = await dao.read.getProposal([0n]);
       expect(proposal.executed).to.be.true;
+      
+      if (!user2) {
+        throw new Error("user1 is required for this test");
+      }
 
       await expect(
         dao.write.vote([0n, true, false], { account: user2.account.address })
@@ -140,6 +164,10 @@ describe("DAO Contract Tests", function () {
   describe("Voting System", function () {
     it("Should allow votes in favor, against, and abstentions", async function () {
       const { dao, owner, user1, user2 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1  || !user2 ) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Test Votazione", "Descrizione", user1.account.address, 100n],
@@ -158,6 +186,10 @@ describe("DAO Contract Tests", function () {
 
     it("Should not allow proposal creation and voting by non-token holders", async function () {
       const { dao, user3, owner } = await loadFixture(deployContractsFixture);
+      
+      if (!user3) {
+        throw new Error("user1 is required for this test");
+      }
 
       await expect(
         dao.write.createProposal(
@@ -182,6 +214,10 @@ describe("DAO Contract Tests", function () {
       const { dao, owner, user1, governanceToken } = await loadFixture(
         deployContractsFixture
       );
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Proposta di Finanziamento", "Descrizione", user1.account.address, 1000n],
@@ -201,6 +237,10 @@ describe("DAO Contract Tests", function () {
 
     it("Should not execute an already executed proposal", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Proposta Test", "Descrizione", user1.account.address, 100n],
@@ -217,6 +257,10 @@ describe("DAO Contract Tests", function () {
 
     it("Should correctly handle multiple proposals", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
+      
+      if (!user1) {
+        throw new Error("user1 is required for this test");
+      }
 
       await dao.write.createProposal(
         ["Proposta 1", "Descrizione 1", user1.account.address, 100n],
