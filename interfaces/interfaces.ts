@@ -50,7 +50,5 @@ export interface DAOContract {
       totalSupply(): Promise<bigint>;
     };
   }
-  
-  
 
 
