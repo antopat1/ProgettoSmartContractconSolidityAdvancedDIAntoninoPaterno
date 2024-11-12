@@ -1,13 +1,34 @@
-# Sample Hardhat Project
+graph TD
+    %% Nodes and Labels
+    subgraph User Accounts
+        A[Users]
+    end
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+    subgraph Smart Contracts
+        B[GovernanceToken]
+        C[DAO]
+    end
 
-Try running some of the following tasks:
+    subgraph Owner Account
+        D[Owner]
+    end
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.ts
-```
+    %% Token Purchase Flow
+    A -- Buys Tokens with ETH --> B
+    B -- Issues Tokens --> A
+
+    %% Proposal Creation and Voting Flow
+    A -- Creates Proposal --> C
+    A -- Votes on Proposal --> C
+
+    %% Proposal Execution Flow
+    C -- Executes Approved Proposals --> B
+    C -- Distributes Tokens/ETH --> A
+
+    %% Withdraw Funds
+    D -- Withdraws ETH from Treasury --> C
+    D -- Receives ETH --> D
+
+    %% External Interactions
+    A -. Uses Tokens to Participate .-> C
+    C -. Tracks Votes and Execution Status .-> A
