@@ -1,4 +1,3 @@
-graph TD
     %% Nodes and Labels
     subgraph User Accounts
         A[Users]
