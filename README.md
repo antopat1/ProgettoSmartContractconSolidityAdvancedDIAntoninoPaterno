@@ -12,8 +12,8 @@ This is a Web3 project implementing a DAO through 3 Smart Contracts using Hardha
 
 Clone the repository using the following command:
 ```bash
-git clone <your-repository-url>
-cd <repository-name>
+git clone https://github.com/antopat1/ProgettoSmartContractconSolidityAdvancedDIAntoninoPaterno.git
+cd ProgettoSmartContractconSolidityAdvancedDIAntoninoPaterno
 ```
 
 ## Installation and Configuration
@@ -68,4 +68,33 @@ const config: HardhatUserConfig = {
 
 export default config;
 ```
+## Available Commands
+
+#### Compile Contracts
+```bash
+npm test
+```
+
+#### Deploy to Local Test Network
+```bash
+npx hardhat run scripts/deployContracts.ts
+```
+
+#### Deploy to Local Test Network
+```bash
+npx hardhat run scripts/deployContracts.ts --network arbitrumSepolia
+```
+
+### Environment Configuration
+Create a .env file in the project root with the following content:
+```bash
+PRIVATE_KEY=your_private_key_here
+```
+
+Notes and Best Practices
+
+- Keep your PRIVATE_KEY secret
+- Never commit sensitive information to the repository
+- Ensure you have the correct Node.js and npm versions installed
+- Always use environment variables for sensitive information
 
