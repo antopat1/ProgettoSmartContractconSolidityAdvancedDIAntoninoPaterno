@@ -28,13 +28,6 @@ npm install --save-dev viem@2.21.37
 npm install --save-dev dotenv@16.4.5
 ```
 
-### Initialize a new Hardhat project:
-```bash
-npx hardhat init
-```
-When prompted, select: "Create a TypeScript project (with Viem)"
-
-
 ## Hardhat Configuration
 Replace the contents of hardhat.config.ts with the following code:
 ```bash
@@ -68,11 +61,22 @@ const config: HardhatUserConfig = {
 
 export default config;
 ```
+### Environment Configuration
+Create a .env file in the project root with the following content:
+```bash
+PRIVATE_KEY=your_private_key_here
+```
+
 ## Available Commands
 
 #### Compile Contracts
 ```bash
-npm test
+npx hardhat compile
+```
+
+#### Execute Test
+```bash
+npx hardhat test
 ```
 
 #### Deploy to Local Test Network
@@ -85,11 +89,7 @@ npx hardhat run scripts/deployContracts.ts
 npx hardhat run scripts/deployContracts.ts --network arbitrumSepolia
 ```
 
-### Environment Configuration
-Create a .env file in the project root with the following content:
-```bash
-PRIVATE_KEY=your_private_key_here
-```
+
 
 Notes and Best Practices
 
