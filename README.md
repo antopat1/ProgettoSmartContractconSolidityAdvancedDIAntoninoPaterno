@@ -14,6 +14,16 @@ Clone the repository using the following command:
 ```bash
 git clone <your-repository-url>
 cd <repository-name>
+```
 
 ## Installation and Configuration
+
+
 ### Install the required dependencies:
+```bash
+npm install --save-dev @nomicfoundation/hardhat-toolbox-viem@3.0.0
+npm install --save-dev @openzeppelin/contracts@4.8.0
+npm install --save-dev hardhat@2.22.15
+npm install --save-dev viem@2.21.37
+npm install --save-dev dotenv@16.4.5
+```
