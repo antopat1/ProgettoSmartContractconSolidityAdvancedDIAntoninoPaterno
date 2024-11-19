@@ -9,7 +9,7 @@ This is a Web3 project implementing a DAO through 3 Smart Contracts using Hardha
 - Git installed on your machine
 
 ## Repository Setup
-git clone <your-repository-url>
+- git clone <your-repository-url>
 cd <repository-name>
 
 ## Installation and Configuration
