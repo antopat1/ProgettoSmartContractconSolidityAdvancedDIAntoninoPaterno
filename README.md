@@ -14,3 +14,6 @@ Clone the repository using the following command:
 ```bash
 git clone <your-repository-url>
 cd <repository-name>
+
+## Installation and Configuration
+### Install the required dependencies:
