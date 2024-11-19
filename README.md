@@ -51,7 +51,7 @@ npx hardhat test
 npx hardhat run scripts/deployContracts.ts
 ```
 
-#### Deploy to Local Test Network
+#### Deploy to Public Test Network
 ```bash
 npx hardhat run scripts/deployContracts.ts --network arbitrumSepolia
 ```
