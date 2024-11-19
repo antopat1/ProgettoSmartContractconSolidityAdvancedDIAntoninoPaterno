@@ -28,39 +28,6 @@ npm install --save-dev viem@2.21.37
 npm install --save-dev dotenv@16.4.5
 ```
 
-## Hardhat Configuration
-Replace the contents of hardhat.config.ts with the following code:
-```bash
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-toolbox-viem";
-import 'dotenv/config';
-
-const myPrivateKey = process.env.PRIVATE_KEY || "";
-
-const config: HardhatUserConfig = {
-  solidity: {
-    version: "0.8.9",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
-      }
-    }
-  },
-  networks: {
-    hardhat: {
-      chainId: 1337
-    },
-    arbitrumSepolia: {
-      url: 'https://sepolia-rollup.arbitrum.io/rpc',
-      chainId: 421614,
-      accounts: [myPrivateKey]
-    }
-  }
-};
-
-export default config;
-```
 ### Environment Configuration
 Create a .env file in the project root with the following content:
 ```bash
