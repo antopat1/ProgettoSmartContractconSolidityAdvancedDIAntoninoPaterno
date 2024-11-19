@@ -61,7 +61,7 @@ npx hardhat run scripts/deployContracts.ts --network arbitrumSepolia
 Notes and Best Practices
 
 - Keep your PRIVATE_KEY secret
-- Never commit sensitive information to the repository
+- Never commit sensitive information to the Repository
 - Ensure you have the correct Node.js and npm versions installed
 - Always use environment variables for sensitive information
 
