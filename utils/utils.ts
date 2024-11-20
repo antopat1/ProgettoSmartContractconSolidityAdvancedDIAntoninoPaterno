@@ -68,21 +68,3 @@ export async function executeTransaction<T>(
   }
 }
 
-// // Utility function for logging deployment start information
-// export async function logDeploymentStart(owner: any, publicClient: any) {
-//   console.log("\n🚀 Starting deployment process...\n");
-//   console.log(`Network: ${hre.network.name}`);
-//   console.log(`\n👤 Deployer Address: ${owner.account.address}`);
-//   const balance = await publicClient.getBalance({ address: owner.account.address });
-//   console.log(`💰 Deployer Balance: ${formatEther(balance)} ETH\n`);
-// }
-
-// // Utility function for logging deployment summary
-// export function logDeploymentSummary(daoAddress: string, tokenAddress: string, ownerAddress: string) {
-//   console.log("\n✅ Deployment Summary");
-//   console.log("=".repeat(50));
-//   console.log(`🏛️  DAO Address: ${daoAddress}`);
-//   console.log(`💰 GovernanceToken Address: ${tokenAddress}`);
-//   console.log(`👤 Owner Address: ${ownerAddress}`);
-//   console.log("=".repeat(50) + "\n");
-// }
