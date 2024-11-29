@@ -74,6 +74,8 @@ describe("DAO Contract Tests", function () {
   });
 
   describe("Voting and Execution", function () {
+  
+
     it("Should allow token holders to vote", async function () {
       const { dao, owner } = await loadFixture(deployContractsFixture);
 
@@ -130,7 +132,7 @@ describe("DAO Contract Tests", function () {
       await dao.write.closeVoting({ account: owner.account.address });
 
       const executive = await dao.read.executive();
-      expect(executive).to.equal(0n);
+      expect(executive).to.equal(false);
     });
 
     it("Should not allow voting on a proposal after it has been executed", async function () {
@@ -183,30 +185,61 @@ describe("DAO Contract Tests", function () {
       expect(Number(proposal.againstVotes)).to.be.greaterThan(0);
       expect(Number(proposal.abstainVotes)).to.be.greaterThan(0);
     });
-
+    
     it("Should not allow proposal creation and voting by non-token holders", async function () {
       const { dao, user3, owner } = await loadFixture(deployContractsFixture);
-      
+    
+      // Controllo che user3 esista nel contesto del test
       if (!user3) {
-        throw new Error("user1 is required for this test");
+        throw new Error("user3 is required for this test");
       }
-
+    
+      // Verifica che un utente senza token non possa creare una proposta
       await expect(
         dao.write.createProposal(
-          ["Proposta Test", "Descrizione", user3.account.address, 0n],
-          { account: user3.account.address }
+          ["Proposta Test", "Descrizione", user3.account.address, 10n], // Parametri di una proposta
+          { account: user3.account.address } // Proposta inviata da user3
         )
       ).to.be.rejectedWith("Solo i membri possono creare proposte");
-
+    
+      // Creazione di una proposta valida da parte del proprietario (owner)
       await dao.write.createProposal(
-        ["Proposta Test", "Descrizione", user3.account.address, 0n],
+        ["Proposta Test", "Descrizione", user3.account.address, 10n],
         { account: owner.account.address }
       );
-
+    
+      // Verifica che un utente senza token non possa votare sulla proposta
       await expect(
-        dao.write.vote([0n, true, false], { account: user3.account.address })
+        dao.write.vote(
+          [0n, true, false], // Parametri del voto: proposalId = 0, a favore = true, contrario = false
+          { account: user3.account.address } // Voto inviato da user3
+        )
       ).to.be.rejectedWith("Devi possedere dei token per votare");
     });
+
+    // it("Should not allow proposal creation and voting by non-token holders", async function () {
+    //   const { dao, user3, owner } = await loadFixture(deployContractsFixture);
+      
+    //   if (!user3) {
+    //     throw new Error("user1 is required for this test");
+    //   }
+
+    //   await expect(
+    //     dao.write.createProposal(
+    //       ["Proposta Test", "Descrizione", user3.account.address, 0n],
+    //       { account: user3.account.address }
+    //     )
+    //   ).to.be.rejectedWith("Solo i membri possono creare proposte");
+
+    //   await dao.write.createProposal(
+    //     ["Proposta Test", "Descrizione", user3.account.address, 0n],
+    //     { account: owner.account.address }
+    //   );
+
+    //   await expect(
+    //     dao.write.vote([0n, true, false], { account: user3.account.address })
+    //   ).to.be.rejectedWith("Devi possedere dei token per votare");
+    // });
   });
 
   describe("Proposal Execution", function () {
@@ -255,34 +288,46 @@ describe("DAO Contract Tests", function () {
       ).to.be.rejectedWith("Proposta gia' eseguita");
     });
 
-    it("Should correctly handle multiple proposals", async function () {
+    it("Should correctly handle multiple proposals and prevent double voting", async function () {
       const { dao, owner, user1 } = await loadFixture(deployContractsFixture);
-      
+    
       if (!user1) {
         throw new Error("user1 is required for this test");
       }
-
+    
+      // Creazione di due proposte
       await dao.write.createProposal(
         ["Proposta 1", "Descrizione 1", user1.account.address, 100n],
         { account: owner.account.address }
       );
-
+    
       await dao.write.createProposal(
         ["Proposta 2", "Descrizione 2", user1.account.address, 200n],
         { account: owner.account.address }
       );
-
+    
+      // Voto dell'utente sulla prima proposta
       await dao.write.vote([0n, true, false], { account: owner.account.address });
+    
+      // Tenta di votare di nuovo sulla stessa proposta (deve fallire)
+      await expect(
+        dao.write.vote([0n, false, false], { account: owner.account.address })
+      ).to.be.rejectedWith("Hai gia' votato su questa proposta.");
+    
+      // Voto dell'utente sulla seconda proposta
       await dao.write.vote([1n, true, false], { account: owner.account.address });
-
+    
+      // Esecuzione di entrambe le proposte
       await dao.write.executeMultipleProposals([[0n, 1n]], { account: owner.account.address });
-
+    
+      // Verifica che entrambe le proposte siano state eseguite
       const proposal1 = await dao.read.getProposal([0n]);
       const proposal2 = await dao.read.getProposal([1n]);
-
+    
       expect(proposal1.executed).to.be.true;
       expect(proposal2.executed).to.be.true;
     });
+
   });
 });
 
