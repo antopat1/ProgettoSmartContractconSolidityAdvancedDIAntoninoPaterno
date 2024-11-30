@@ -84,33 +84,6 @@ contract Proposal {
         emit ProposalCreated(proposalId, _title);
     }
 
-    // function createProposal(
-    //     string calldata _title,
-    //     string calldata _description,
-    //     address _recipient,
-    //     uint _amount
-    // ) external {
-    //     require(bytes(_description).length > 0, "La descrizione non puo' essere vuota.");
-    //     require(token.balanceOf(msg.sender) > 0, "Solo i membri possono creare proposte.");
-
-    //     uint proposalId = allProposals.length;
-    //     allProposals.push(ProposalDetails({
-    //         id: proposalId,
-    //         title: _title,
-    //         description: _description,
-    //         forVotes: 0,
-    //         againstVotes: 0,
-    //         abstainVotes: 0,
-    //         executed: false,
-    //         passed: false,
-    //         proposer: msg.sender,
-    //         recipient: _recipient,
-    //         amount: _amount
-    //     }));
-
-    //     emit ProposalCreated(proposalId, _title);
-    // }
-
     /// @notice Ritorna i dettagli di una proposta tramite il suo ID
     /// @param _proposalId ID della proposta
     /// @return ProposalDetails I dettagli della proposta
